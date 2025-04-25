@@ -1,8 +1,7 @@
 from fastapi import Depends
-from .database import SessionLocal
+from ..database import SessionLocal
 from typing import Annotated
 from sqlalchemy.orm import Session
-
 
 def get_db():
     db=SessionLocal()
@@ -11,4 +10,7 @@ def get_db():
     finally:
         db.close()
         
-db_dependancy=Annotated[Session,Depends(get_db)]          
+db_dependancy=Annotated[Session,Depends(get_db)]     
+
+
+ 
