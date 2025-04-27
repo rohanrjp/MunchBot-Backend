@@ -12,7 +12,7 @@ from datetime import timedelta,datetime,timezone
 import jwt
 from ..config import settings
 from fastapi.security import OAuth2PasswordBearer
-from fastapi import Depends
+from fastapi import Depends,WebSocket,HTTPException,status
 from ..dependancies.db_dependencies import db_dependancy
 from jwt.exceptions import PyJWTError
 
@@ -59,3 +59,28 @@ def get_current_user(jwt_token:Annotated[str,Depends(oauth2_scheme)],db:db_depen
         raise Invalid_Credentials_Exception
     
 
+async def get_current_user_websocket(websocket:WebSocket,db: Session):
+    
+    jwt_token=websocket.query_params.get('token')
+    if not jwt_token:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid token or missing token")
+    
+    try:
+        payload=jwt.decode(jwt_token,key=settings.SECRET_KEY,algorithms=[settings.ALGORITHM])
+        user_uuid=payload.get('sub')
+        if not user_uuid:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            raise Invalid_Credentials_Exception
+        user=db.query(User).filter(User.uuid==user_uuid).first()
+        
+        if not user:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            raise Invalid_Credentials_Exception
+        
+        return user
+    except PyJWTError:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        raise Invalid_Credentials_Exception
+        
+        

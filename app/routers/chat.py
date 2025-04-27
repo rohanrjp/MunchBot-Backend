@@ -1,19 +1,25 @@
 from fastapi import WebSocket,WebSocketDisconnect,APIRouter
 from fastapi.responses import HTMLResponse
+from app.dependancies.db_dependencies import get_db
+from app.services.auth_services import get_current_user_websocket
 from ..agents.chat_agent import chat_agent
 from ..dependancies.auth_dependancies import user_dependancy
 
 chat_router=APIRouter(prefix="/chat",tags=["chat"])
 
 @chat_router.websocket("/ws")
-async def websocket_chat_endpoint(websocket:WebSocket):
+async def websocket_chat_endpoint(websocket:WebSocket,token:str):
     await websocket.accept()
+    db = next(get_db())
     try:
+        user = get_current_user_websocket(token, db)
         async for message in websocket.iter_text():
             async with chat_agent.run_stream(message,message_history=[]) as result:
                     await websocket.send_text(await result.get_output())
     except WebSocketDisconnect:
         print("client disconnected")
+    finally:
+        db.close()    
             
 @chat_router.get("/chat-ui")
 async def get_chat_ui():
@@ -100,7 +106,12 @@ async def get_chat_ui():
         </div>
 
         <script>
-            const socket = new WebSocket("ws://localhost:8000/chat/ws");
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert("No token found, please login first!");
+            }
+
+            const socket = new WebSocket(`ws://localhost:8000/chat/ws?token=${token}`);
 
             const messagesDiv = document.getElementById("messages");
             const input = document.getElementById("messageInput");
