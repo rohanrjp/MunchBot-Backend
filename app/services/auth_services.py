@@ -1,10 +1,9 @@
 from typing import Annotated
-
 from app.database import SessionLocal
 from ..schemas.auth_schemas import UserSignUp
 from sqlalchemy.orm import Session    
 from ..models.auth_models import User
-from ..utils import hash_password
+from ..utils import hash_password,convert_utc_to_ist
 from pydantic import EmailStr
 from ..exceptions.auth_exceptions import Invalid_Credentials_Exception
 import uuid
@@ -22,11 +21,14 @@ def check_user_exits(new_user_email:EmailStr,db:Session):
     return db.query(User).filter(new_user_email==User.email).first() 
     
 def add_user(new_user: UserSignUp,db:Session)->None:
+    current_utc_datetime=datetime.now(timezone.utc)
+    current_ist_datetime=convert_utc_to_ist(current_utc_datetime)
     hashed_password=hash_password(new_user.password)
     user=User(
         name=new_user.name,
         email=new_user.email,
-        hashed_password=hashed_password
+        hashed_password=hashed_password,
+        joining_date=current_ist_datetime
     )
     try:
         db.add(user)
