@@ -1,19 +1,78 @@
-from fastapi import WebSocket,WebSocketDisconnect,APIRouter
+from datetime import datetime
+from fastapi import WebSocket,WebSocketDisconnect,APIRouter,HTTPException,status,Path
 from fastapi.responses import HTMLResponse
+from app.dependancies.db_dependencies import db_dependancy
+from app.services.auth_services import get_current_user_websocket
 from ..agents.chat_agent import chat_agent
+from ..agents.chat_agent import SupportDependancies
+from ..services.chat_services import store_chat_message,retrieve_chat_messages
 from ..dependancies.auth_dependancies import user_dependancy
+from pydantic_core import to_jsonable_python
+from pydantic_ai.messages import ModelMessagesTypeAdapter
 
 chat_router=APIRouter(prefix="/chat",tags=["chat"])
 
 @chat_router.websocket("/ws")
-async def websocket_chat_endpoint(websocket:WebSocket):
+async def websocket_chat_endpoint(websocket: WebSocket,db:db_dependancy):
     await websocket.accept()
+ 
     try:
+        user = await get_current_user_websocket(websocket, db)
+        user_name = user.name
+        user_id=user.uuid
+        
+        message_history=[]
+            
+        init_json= await websocket.receive_json()
+        init_dict=init_json
+        print(init_dict)
+        
+        if init_dict["type"]=="init" and "date" in init_dict:
+            selected_date_str=init_dict["date"]
+            selected_date=datetime.strptime(selected_date_str,"%Y-%m-%d").date()
+        else:
+            await websocket.close(code=1003)    
+           
+        messages_for_today=retrieve_chat_messages(db,user_id,selected_date) 
+          
         async for message in websocket.iter_text():
-            async with chat_agent.run_stream(message,message_history=[]) as result:
-                    await websocket.send_text(await result.get_output())
+            print(message)
+            message_history.append(
+                {'role': 'user',
+                'content': message,
+                'timestamp': datetime.now().isoformat(),
+                }
+            )
+            store_chat_message(db,user_id,message,sender="user")
+            async with chat_agent.run_stream(message, message_history=[], deps=SupportDependancies(user_name=user_name)) as result:
+                bot_response = await result.get_output()
+                message_history.append({
+                    'role': 'assistant',
+                    'content': bot_response,
+                    'timestamp': datetime.now().isoformat(),
+                })
+                store_chat_message(db,user_id,bot_response,sender="assistant")
+                await websocket.send_text(bot_response)
+
     except WebSocketDisconnect:
-        print("client disconnected")
+        print(f"Client {user_name} disconnected")
+
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+        await websocket.close()
+
+@chat_router.get('/history/{date}')
+async def get_history_for_date(date:str,db:db_dependancy,user:user_dependancy):
+    if not date:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    try:
+        selected_date=datetime.strptime(date,"%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="Invalid date format")
+    
+    messages=retrieve_chat_messages(db,user.uuid,selected_date)
+    
+    return messages
             
 @chat_router.get("/chat-ui")
 async def get_chat_ui():
@@ -100,7 +159,12 @@ async def get_chat_ui():
         </div>
 
         <script>
-            const socket = new WebSocket("ws://localhost:8000/chat/ws");
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert("No token found, please login first!");
+            }
+
+            const socket = new WebSocket(`ws://localhost:8000/chat/ws?token=${token}`);
 
             const messagesDiv = document.getElementById("messages");
             const input = document.getElementById("messageInput");

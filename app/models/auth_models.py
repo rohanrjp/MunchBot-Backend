@@ -2,10 +2,7 @@ from sqlalchemy import Column,String,DateTime
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from ..database import Base
 import uuid
-from zoneinfo import ZoneInfo
-from datetime import datetime
-
-IST=ZoneInfo("Asia/Kolkata")
+from sqlalchemy.orm import relationship
 
 class User(Base):
     
@@ -15,4 +12,6 @@ class User(Base):
     name=Column(String,nullable=False)
     email=Column(String,nullable=False,unique=True)
     hashed_password=Column(String,nullable=False)
-    joining_date=Column(DateTime,nullable=False,default=lambda : datetime.now(IST))
+    joining_date=Column(DateTime,nullable=False)
+    
+    chat_messages = relationship("ChatMessage", back_populates="user", cascade="all, delete-orphan")
