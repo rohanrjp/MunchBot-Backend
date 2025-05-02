@@ -17,4 +17,5 @@ dependencies = [
     "websockets>=15.0.1",
     "pydantic-ai>=0.1.6",
     "psycopg2-binary>=2.9.10",
+    "redis>=6.0.0",
 ]
