@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+import json
 from fastapi import WebSocket,WebSocketDisconnect,APIRouter,HTTPException,status,Path
 from fastapi.responses import HTMLResponse
 from app.dependancies.db_dependencies import db_dependancy
@@ -7,8 +8,9 @@ from ..agents.chat_agent import chat_agent
 from ..agents.chat_agent import SupportDependancies
 from ..services.chat_services import store_chat_message,retrieve_chat_messages
 from ..dependancies.auth_dependancies import user_dependancy
-from pydantic_core import to_jsonable_python
-from pydantic_ai.messages import ModelMessagesTypeAdapter
+from pydantic_ai.messages import ModelRequest, ModelResponse
+from pydantic_ai.messages import UserPromptPart, TextPart
+from app.rate_limiter import increment_message_counter
 
 chat_router=APIRouter(prefix="/chat",tags=["chat"])
 
@@ -20,12 +22,9 @@ async def websocket_chat_endpoint(websocket: WebSocket,db:db_dependancy):
         user = await get_current_user_websocket(websocket, db)
         user_name = user.name
         user_id=user.uuid
-        
-        message_history=[]
-            
+                
         init_json= await websocket.receive_json()
         init_dict=init_json
-        print(init_dict)
         
         if init_dict["type"]=="init" and "date" in init_dict:
             selected_date_str=init_dict["date"]
@@ -34,26 +33,50 @@ async def websocket_chat_endpoint(websocket: WebSocket,db:db_dependancy):
             await websocket.close(code=1003)    
            
         messages_for_today=retrieve_chat_messages(db,user_id,selected_date) 
+        messages = []
+        for item in messages_for_today:
+            msg_type = item["sender"]
+            msg_content = item["message"]
+
+            if msg_type == "human":
+                msg_obj = ModelRequest(parts=[UserPromptPart(content=msg_content)])
+            else:
+                msg_obj = ModelResponse(parts=[TextPart(content=msg_content)])
+            
+            messages.append(msg_obj)
           
         async for message in websocket.iter_text():
-            print(message)
-            message_history.append(
-                {'role': 'user',
-                'content': message,
-                'timestamp': datetime.now().isoformat(),
-                }
-            )
-            store_chat_message(db,user_id,message,sender="user")
-            async with chat_agent.run_stream(message, message_history=[], deps=SupportDependancies(user_name=user_name)) as result:
-                bot_response = await result.get_output()
-                message_history.append({
-                    'role': 'assistant',
-                    'content': bot_response,
-                    'timestamp': datetime.now().isoformat(),
-                })
-                store_chat_message(db,user_id,bot_response,sender="assistant")
-                await websocket.send_text(bot_response)
+            try:
+                message_data = json.loads(message)
 
+                if message_data.get("type") != "message":
+                    raise ValueError("Invalid message type")
+
+                content = message_data["content"]
+                timestamp_str = message_data.get("timestamp")
+                if not timestamp_str:
+                    raise ValueError("Missing timestamp")
+                
+                timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+                
+                if not await increment_message_counter(user_id):
+                    await websocket.send_text("Daily message limit reached (5 per day). Try again tomorrow.")
+                    await websocket.close(code=1008, reason="Rate limit exceeded")
+                    return
+                
+                store_chat_message(db,user_id,content,sender="user",message_timestamp=timestamp,message_date=selected_date)
+
+                async with chat_agent.run_stream(content, message_history=messages, deps=SupportDependancies(user_name=user_name)) as result:
+                    bot_response = await result.get_output()
+                    messages.append(ModelRequest(parts=[UserPromptPart(content=message)]))
+                    messages.append(ModelResponse(parts=[TextPart(content=bot_response)]))
+                    store_chat_message(db,user_id,bot_response,sender="assistant",message_timestamp=timestamp+timedelta(seconds=1),message_date=selected_date)
+                    await websocket.send_text(bot_response)
+                
+            except (json.JSONDecodeError, ValueError) as e:
+                print(f"WebSocket error: {e}")
+                await websocket.close(code=1003, reason=str(e))       
+            
     except WebSocketDisconnect:
         print(f"Client {user_name} disconnected")
 

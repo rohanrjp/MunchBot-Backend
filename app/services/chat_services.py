@@ -1,22 +1,18 @@
-from datetime import date, timezone,datetime
+from datetime import date,datetime
 from uuid import uuid4,UUID
 from sqlalchemy.orm import Session
 from ..models.chat_model import ChatMessage
-from ..utils import convert_utc_to_ist
 from sqlalchemy import cast,Date
 
-current_utc_datetime=datetime.now(timezone.utc)
-current_ist_datetime=convert_utc_to_ist(current_utc_datetime)
-
-def store_chat_message(db: Session, user_id:UUID,message:str, sender:str)->None:
+def store_chat_message(db: Session, user_id:UUID,message:str, sender:str,message_timestamp:datetime,message_date:date)->None:
     
     chat_message = ChatMessage(
         user_id=user_id,
         chat_id=uuid4(),
         message=message,
         sender=sender,
-        timestamp=current_ist_datetime,
-        chat_date=current_ist_datetime.date().isoformat()
+        timestamp=message_timestamp,
+        chat_date=message_date
     )
     db.add(chat_message)
     db.commit()

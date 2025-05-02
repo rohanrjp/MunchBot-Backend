@@ -6,6 +6,10 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES:int
     SECRET_KEY:str
     GEMINI_API_KEY:str
+    REDIS_CLOUD_PASSWORD:str
+    REDIS_CLOUD_HOST:str
+    REDIS_CLOUD_PORT:int
+    REDIS_CLOUD_USERNAME:str
         
     model_config=SettingsConfigDict(
         env_file=".env",
