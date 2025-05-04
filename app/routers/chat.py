@@ -22,6 +22,7 @@ async def websocket_chat_endpoint(websocket: WebSocket,db:db_dependancy):
         user = await get_current_user_websocket(websocket, db)
         user_name = user.name
         user_id=user.uuid
+        user_is_pro=user.is_pro
                 
         init_json= await websocket.receive_json()
         init_dict=init_json
@@ -59,7 +60,7 @@ async def websocket_chat_endpoint(websocket: WebSocket,db:db_dependancy):
                 
                 timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
                 
-                if not await increment_message_counter(user_id):
+                if not await increment_message_counter(user_id,user_is_pro):
                     await websocket.send_text("Daily message limit reached (5 per day). Try again tomorrow.")
                     await websocket.close(code=1008, reason="Rate limit exceeded")
                     return

@@ -1,4 +1,4 @@
-from sqlalchemy import Column,String,DateTime
+from sqlalchemy import Column,String,DateTime,Boolean
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from ..database import Base
 import uuid
@@ -13,5 +13,6 @@ class User(Base):
     email=Column(String,nullable=False,unique=True)
     hashed_password=Column(String,nullable=False)
     joining_date=Column(DateTime,nullable=False)
+    is_pro=Column(Boolean,nullable=False)
     
     chat_messages = relationship("ChatMessage", back_populates="user", cascade="all, delete-orphan")
