@@ -28,7 +28,8 @@ def add_user(new_user: UserSignUp,db:Session)->None:
         name=new_user.name,
         email=new_user.email,
         hashed_password=hashed_password,
-        joining_date=current_ist_datetime
+        joining_date=current_ist_datetime,
+        is_pro=False
     )
     try:
         db.add(user)
