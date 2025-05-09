@@ -16,3 +16,4 @@ class User(Base):
     is_pro=Column(Boolean,nullable=False)
     
     chat_messages = relationship("ChatMessage", back_populates="user", cascade="all, delete-orphan")
+    goals = relationship("UserGoal", back_populates="user", uselist=False, cascade="all, delete-orphan") 

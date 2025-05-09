@@ -8,6 +8,8 @@ from alembic import context
 from app.database import Base
 from app.models.auth_models import User
 from app.models.chat_model import ChatMessage
+from app.models.nutrition_summary_model import DailyNutritionSummary
+from app.models.user_goals import UserGoal
 from app.config import settings
 
 # this is the Alembic Config object, which provides

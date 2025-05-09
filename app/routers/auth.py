@@ -32,9 +32,6 @@ async def user_log_in(db:db_dependancy,form_data: Annotated[OAuth2PasswordReques
         jwt_token=create_access_token(existing_user.uuid,settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         return Token(access_token=jwt_token,token_type="bearer") 
     
-@auth_router.get('/profile',response_model=UserProfile,status_code=status.HTTP_200_OK)
-async def get_current_user(user:user_dependancy):
-    return user
            
         
     

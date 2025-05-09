@@ -6,11 +6,12 @@ from app.dependancies.db_dependencies import db_dependancy
 from app.services.auth_services import get_current_user_websocket
 from ..agents.chat_agent import chat_agent
 from ..agents.chat_agent import SupportDependancies
-from ..services.chat_services import store_chat_message,retrieve_chat_messages
+from ..services.chat_services import store_chat_message,retrieve_chat_messages,summarise_daily_nutrition_messages
 from ..dependancies.auth_dependancies import user_dependancy
 from pydantic_ai.messages import ModelRequest, ModelResponse
 from pydantic_ai.messages import UserPromptPart, TextPart
 from app.rate_limiter import increment_message_counter
+import asyncio
 
 chat_router=APIRouter(prefix="/chat",tags=["chat"])
 
@@ -73,6 +74,7 @@ async def websocket_chat_endpoint(websocket: WebSocket,db:db_dependancy):
                     messages.append(ModelResponse(parts=[TextPart(content=bot_response)]))
                     store_chat_message(db,user_id,bot_response,sender="assistant",message_timestamp=timestamp+timedelta(seconds=1),message_date=selected_date)
                     await websocket.send_text(bot_response)
+                    asyncio.create_task(summarise_daily_nutrition_messages(db,user_id,selected_date))
                 
             except (json.JSONDecodeError, ValueError) as e:
                 print(f"WebSocket error: {e}")
