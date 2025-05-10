@@ -5,6 +5,7 @@ from .routers.chat import chat_router
 from .routers.dashboard import dashboard_router
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from .config import settings
 
 def create_app()->FastAPI:
     
@@ -35,4 +36,8 @@ app=create_app()
 
 @app.get('/health-check',status_code=status.HTTP_200_OK,tags=["Health Check"])
 async def ping():
-    return {"message":"Server running"}     
+    return {"message":"Server running"}  
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app.main:app", host="0.0.0.0", port=settings.GCLOUD_PORT)   
