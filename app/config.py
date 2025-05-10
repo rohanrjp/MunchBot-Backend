@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     REDIS_CLOUD_PORT:int
     REDIS_CLOUD_USERNAME:str
     ALEMBIC_CONNECTION:str
+    GCLOUD_PORT:int
         
     model_config=SettingsConfigDict(
         env_file=".env",
