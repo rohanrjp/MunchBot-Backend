@@ -14,6 +14,7 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi import Depends,WebSocket,HTTPException,status
 from ..dependancies.db_dependencies import db_dependancy
 from jwt.exceptions import PyJWTError
+from app.models.user_goals import UserGoal
 
 oauth2_scheme=OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -29,7 +30,14 @@ def add_user(new_user: UserSignUp,db:Session)->None:
         email=new_user.email,
         hashed_password=hashed_password,
         joining_date=current_ist_datetime,
-        is_pro=False
+        is_pro=False,
+        goals=UserGoal( 
+            calorie_goal=2000.0,
+            protein_goal=150.0,
+            sugar_goal=30.0,
+            fat_goal=30.0,
+            carbs_goal=200.0
+        )
     )
     try:
         db.add(user)

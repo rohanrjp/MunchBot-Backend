@@ -2,6 +2,7 @@ from fastapi import FastAPI,status
 from .database import init_db
 from .routers.auth import auth_router
 from .routers.chat import chat_router
+from .routers.dashboard import dashboard_router
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
@@ -18,6 +19,7 @@ def create_app()->FastAPI:
     
     app.include_router(auth_router)
     app.include_router(chat_router)
+    app.include_router(dashboard_router)
 
     app.add_middleware(
         CORSMiddleware,
