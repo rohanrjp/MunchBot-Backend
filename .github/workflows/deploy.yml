@@ -9,10 +9,10 @@ on:
 env:
   DOCKER_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
   DOCKER_PASSWORD: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-  DOCKER_IMAGE: rjp1007/mbot
+  DOCKER_IMAGE: rjp1007/munchbot
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: asia-south1
-  SERVICE_NAME: mbot
+  SERVICE_NAME: munchbot
 
 jobs:
   build-and-deploy:
