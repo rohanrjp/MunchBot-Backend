@@ -34,12 +34,12 @@ def retrieve_chat_messages(db:Session,user_id: UUID,date:date):
         for m in messages
     ]
  
-def retrieve_bot_messages(db: Session,user_id: UUID,selected_date:date):
+def retrieve_bot_user_messages(db: Session,user_id: UUID,selected_date:date):
     
     messages=db.query(ChatMessage).filter(
         user_id==ChatMessage.user_id,
         cast(ChatMessage.chat_date, Date) == selected_date,
-        ChatMessage.sender=="assistant"
+        ChatMessage.sender.in_(["user", "assistant"])
     ).order_by(
         ChatMessage.timestamp.asc()
     ).all()
@@ -47,12 +47,12 @@ def retrieve_bot_messages(db: Session,user_id: UUID,selected_date:date):
     return messages
          
 async def summarise_daily_nutrition_messages(db: Session,user_id: UUID,selected_date: date)->None:
-    bot_messages=retrieve_bot_messages(db,user_id,selected_date)    
+    conversation_messages=retrieve_bot_user_messages(db,user_id,selected_date)    
     
-    if not bot_messages:
+    if not conversation_messages:
         return None
     else:
-        input_to_agent= "/n".join([msg.message for msg in bot_messages])
+        input_to_agent = "\n".join([f"{msg.sender}: {msg.message}" for msg in conversation_messages])
         output= await nutrition_summary_agent.run(input_to_agent)
         
     try:
