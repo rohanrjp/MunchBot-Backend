@@ -3,7 +3,7 @@ from datetime import datetime, timedelta,timezone
 from uuid import UUID
 from .utils import convert_utc_to_ist
 
-MESSAGES_PER_DAY_LIMIT_FREE=3
+MESSAGES_PER_DAY_LIMIT_FREE=7
 MESSAGES_PER_DAY_LIMIT_PRO=10
 
 def _user_key(user_id:UUID)->str:

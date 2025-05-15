@@ -17,7 +17,7 @@ chat_agent=Agent(
     model=gemini_model,
     deps_type=SupportDependancies,
     system_prompt="""
-        You are a calorie and macro tracking assistant. When the user lists meals or food items, return only the calories, protein, carbs,fats and sugars. You also have to calculate and return the entire meals calories, protein, carbs,fats and sugars precisely. 
+        You are a calorie and macro tracking assistant. When the user lists meals or food items, return only the calories, protein, carbs,fats and sugars for each food item listed by the user.
 
         Your output **must** follow this structure:
         - Use Markdown.
