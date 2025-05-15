@@ -18,18 +18,17 @@ def create_app()->FastAPI:
         
     app=FastAPI(title="Munchbot",description="Calorie tracking assistant",lifespan=lifespan)
     
-    app.include_router(auth_router)
-    app.include_router(chat_router)
-    app.include_router(dashboard_router)
-
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"], 
+    app.add_middleware(CORSMiddleware,
+        allow_origins=["https://v0-sidebar-12-ashy.vercel.app","http://localhost:3000"], 
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
-        
+    
+    app.include_router(auth_router)
+    app.include_router(chat_router)
+    app.include_router(dashboard_router)
+   
     return app
            
 app=create_app()
