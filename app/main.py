@@ -1,4 +1,4 @@
-from fastapi import FastAPI,status
+from fastapi import FastAPI,status,Response
 from .database import init_db
 from .routers.auth import auth_router
 from .routers.chat import chat_router
@@ -36,6 +36,15 @@ app=create_app()
 @app.get('/health-check',status_code=status.HTTP_200_OK,tags=["Health Check"])
 async def ping():
     return {"message":"Server running"}  
+
+@app.options("/simulate-preflight", tags=["Health Check"])
+async def simulate_preflight():
+    response = Response(status_code=status.HTTP_204_NO_CONTENT)
+    response.headers["Access-Control-Allow-Origin"] = "https://v0-sidebar-12-ashy.vercel.app"
+    response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 if __name__ == "__main__":
     import uvicorn
